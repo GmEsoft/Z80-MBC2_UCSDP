@@ -2,7 +2,7 @@
 DISK0	EQU	20		;First disk number in set
 DEBUG	EQU	0		;Debug mode
 
-	include	datetime.asm
+	include	"datetime.asm"
 
 CR	EQU	0DH
 LF	EQU	0AH
@@ -18,27 +18,21 @@ $BREAK	MACRO
 	JP	BOOTZ80			;bootstrap routine
 	DC	0DH,0			;fill
 
-	ORG	80H
+	ORG	40H
 BOOTZ80:
-;	HALT
 	DI
 
-	LD	SP,80H
-
-	LD	HL,$BIOS_BEGIN
-	LD	DE,BIOS
-	LD	BC,$BIOS_END-$BIOS_BEGIN
+	LD	HL,$BIOS_BEGIN		;Install CBIOS
+	LD	DE,BIOS			;
+	LD	BC,$BIOS_END-$BIOS_BEGIN;
 	LDIR
 
-	LD	A,0C3H
-	LD	(0),A
-	LD	HL,MAIN
-	LD	(1),HL
-	JP	MAIN
 
-	ORG	100H
+;	ORG	100H
 					;
 MAIN:					;LET'S BOOT UCSD PASCAL
+;	HALT
+
 ;
 ;	  THIS PROGRAM IS A SKELETAL OUTLINE FOR A 128-BYTE PRIMARY
 ;	BOOTSTRAP FOR AUTOMATICALLY BOOTING TO UCSD PASCAL (TM).
@@ -67,9 +61,8 @@ PBOOT:	LD	HL,CBIOS	; CBIOS GOES HERE
 
 	LD	HL,HELLO$	; Copyright Text
 	CALL	PUTS
-
-	LD	HL,READING$	; 'Reading Secondary Bootstrap'
-	CALL	PUTS		;
+	LD	HL,READSEC$	; Reading sec bootstrap
+	CALL	PUTS
 	LD	HL,BOOT		; LOAD BOOT BASE ADDRESS
 	LD	D,SECNUM	; D - # OF SECTORS TO READ
 	LD	E,SECSEC	; E - STARTING SECTOR
@@ -98,8 +91,15 @@ PBOOT:	LD	HL,CBIOS	; CBIOS GOES HERE
 	PUSH	DE
 	PUSH	HL		; STARTING ADDRESS OF INTERPRETER
 	LD	HL,BOOTING$	; 'Booting to UCSD Pascal'
-	CALL	PUTS		;
 	$BREAK			;
+	CALL	PUTS1		;
+	$BREAK			;
+	LD	A,0C3H
+	LD	(0),A
+	LD	HL,MAIN
+	LD	(1),HL
+	LD	A,0C9H
+	LD	(PUTS),A	; FOR WARM BOOT
 	JP	BOOT		; ENTER SECONDARY BOOTSTRAP
 ;
 ;	  READIT MUST READ THE NUMBER OF SECTORS SPECIFIED IN THE D
@@ -135,16 +135,21 @@ L2:
 	ADD	HL,BC		; DMA ADDRESS + 128
 	JP	L1		; GO READ NEXT
 
-PUTS:	LD	A,(HL)
+PUTS:	NOP
+PUTS1:	LD	A,(HL)
 	OR	A
 	RET	Z
 	LD	C,A
 	CALL	CONOUT		;SEND CHAR TO TERMINAL
 	INC	HL
-	JR	PUTS
+	JR	PUTS1
 
 
+BOOTING$:
+	DB	CR,LF,LF,'Booting to UCSD Pascal',0
 
+READSEC$:
+	DB	CR,LF,'Reading Secondary Bootstrap',0
 
 ;	UCSD p-System IV CBIOS for Z80-MBC2
 ;
@@ -163,11 +168,6 @@ HELLO$:
 	DB	' - '
 	$TIME
 	DB	CR,LF,0
-
-READING$:
-	DB	CR,LF,'Reading Secondary Bootstrap',0
-BOOTING$:
-	DB	CR,LF,LF,'Booting to UCSD Pascal',0
 
 
 
@@ -259,17 +259,24 @@ CONST1:	POP	BC
 ;
 CONIN:	LD	A,$-$
 LASTKEY	EQU	$-1
-	CP	'K'-20H		;Ctrl-K ?
+	CP	'_'-40H		;Ctrl-_ ?
 	JR	NZ,CONIN1
 	IN	A,(1)
+	INC	A
+	RET	Z
+	$BREAK
+	DEC	A
 	AND	0DFH		;to uppercase
 	LD	(KEYMAP),A
-	XOR	A
+	LD	(LASTKEY),A
+	LD	A,'_'-40H
 	RET
 CONIN1:	IN	A,(1)		;get character from console
 	INC	A		;0FFH if no char -> 0
 	RET	Z
+	$BREAK
 	DEC	A
+	LD	(LASTKEY),A
 	PUSH	BC
 ;	LD	BC,60000	;init KBD timer
 ;	LD	(KBTIMER),BC
@@ -284,6 +291,7 @@ KEYMAP	EQU	$-1
 
 
 keybbe:
+	$BREAK
 	ld	a,c
 	rlca
 	ret	c
@@ -297,13 +305,13 @@ keybbe:
 
 keybbe$:
 	db	00h,11h,02h,03h,04h,05h,06h,07h,08h,09h,0Ah,0Bh,0Ch,0Dh,0Eh,0Fh
-	db	10h,01h,12h,13h,14h,15h,16h,1Ah,18h,19h,17h,1Bh,1Ch,1Dh,1Eh,1Fh
-	db	' 1"3457''908_;):='
-	db	'a&e"''(Se!cMm.-/+'
+	db	10h,01h,12h,13h,14h,15h,16h,1Ah,18h,19h,17h,1Bh,'|','~',1Eh,1Fh
+	db	' 1%3457`908_;):='
+	db	'@&["''(#]!^Mm.-/+'
 	db	'2QBCDEFGHIJKL?NO'
-	db	'PARSTUVZXYW[<$6o'
-	db	'<qbcdefghijkl,no'
-	db	'parstuvzxyw{>*>€'
+	db	'PARSTUVZXYW{<$6\'
+	db	'|qbcdefghijkl,no'
+	db	'parstuvzxyw}>*~',7FH
 
 ;
 ;	console character output from register c
