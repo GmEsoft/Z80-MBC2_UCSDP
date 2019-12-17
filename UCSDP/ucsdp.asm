@@ -1,4 +1,16 @@
-	; Settings
+;=============================================================================
+;	UCSD p-System Bootstrap Loader and SBIOS V1.1 for Z80-MBC2
+;=============================================================================
+;
+;	Build:
+;		zmac UCSDP.asm --od UCSDP --oo cim,lst -c -s -g
+;	ZMAC: 8080/Z-80 Cross-Assembler for Windows
+;		http://48k.ca/zmac.html
+;=============================================================================
+
+
+;-----------------------------------------------------------------------------
+; 	Settings
 DISK0	EQU	20			; First disk number in set
 DEBUG	EQU	0			; Debug mode
 
@@ -175,7 +187,7 @@ READSEC$:
 ;
 ;
 HELLO$:
-	DB	'64K UCSD p-System IV.0 CBIOS V1.1 for Z80-MBC2, '
+	DB	'64K UCSD p-System IV.0 SBIOS V1.1 for Z80-MBC2, '
 	DB	'Copyright (C) 2019 by GmEsoft'
 	DB	CR,LF
 	DB	'Build: '

@@ -52,8 +52,8 @@ keyboard, the key combination is `<Ctrl>-<Shift>-<_>` ; the `<_>` key is immedia
 Because  the non-ASCII chars (accented letters, symbols) can't be handled by the terminal, their corresponding keys have
 been redefined as follows:
 
-    é    §    è    ç    à    °    ^    ¨    ù    `    £    ²    ³   ^µ   ^$
-    [    #    ]    ^    @    \    {    }    `    <    >    |    ~    |    ~
+    From:  é    §    è    ç    à    °    ^    ¨    ù    `    £    ²    ³   ^µ   ^$
+    To:    [    #    ]    ^    @    \    {    }    `    <    >    |    ~    |    ~
 
 
 
@@ -78,9 +78,9 @@ of  the  new disk images. Then data from the tracks 2 to 77 from the source imag
 The syntax for makedisk is:
 
     Makedisk -M:outfile [-L:lrl] [-SI:input track size] [-SO:output track size]    
-          [ [-I:infile] [-XI:input interleave] [-KI:input skew]
-             -F:[T]from -T:[T]to -D:[T]dest ... ]
-             -P:[T]padsize
+             [ [-I:infile] [-XI:input interleave] [-KI:input skew]
+               -F:[T]from -T:[T]to -D:[T]dest ... ]
+             [ -P:[T]padsize ]
                  T for whole tracks, else sectors
     Defaults:
              -L:128   bytes per sector
