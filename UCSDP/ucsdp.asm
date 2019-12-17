@@ -25,10 +25,10 @@ LF	EQU	0AH
 ESC	EQU	1BH
 
 ;-----------------------------------------------------------------------------
-;	Macro to break in Keil-like emulator
+;	Macro to break in emulator
 $BREAK	MACRO
 	IF	DEBUG
-	DB	0EDH,0F5H	; Keil's emulator $BREAK opcode
+	DB	0EDH,0F5H	; emulator $BREAK extended opcode
 	ENDIF
 	ENDM
 				;
@@ -1080,6 +1080,8 @@ WRITE512:
 DSKINIT:
 DSKSTRT:
 DSKSTOP:
+;	Unused Extended SBIOS functions: Printer access,
+;	Remote access, User devices access ...
 PRNINIT:
 PRNSTAT:
 PRNREAD:
@@ -1100,35 +1102,36 @@ USRWRIT:
 CLKREAD:
 	LD	A,84h		; IOS:DATETIME opcode
 	OUT	(1),A		; Send opcode
-	IN	A,(0)
+	IN	A,(0)		;
 	LD	E,A		; Secs
-	IN	A,(0)
+	IN	A,(0)		;
 	LD	D,A		; Mins
-	IN	A,(0)
+	IN	A,(0)		;
 	LD	L,A		; Hours
-	LD	H,0
+	LD	H,0		;
 	EXX			;
 	LD	HL,0		;
 	EXX			;
 	CALL	LMUL60		; Long mult by 60
 	LD	C,D		; Get mins
-	LD	B,0		; Clear D for later
-	LD	D,B		;
+	LD	B,0		;
+	LD	D,B		; Clear D for later
 	ADD	HL,BC		; Add mins
-	CALL	LMUL60		;
-	ADD	HL,DE		; Add secs (no carry necessary
-	EXX
-	ADC	HL,BC		; Report carry (BC' == 0)
-	EXX
 	CALL	LMUL60		; Long mult by 60
-	EXX
+	ADD	HL,DE		; Add secs
+	EXX			;
+	ADC	HL,BC		; Report carry (BC' == 0)
+	EXX			;
+	CALL	LMUL60		; Long mult by 60
+	EXX			;
 	PUSH	HL		; Get MSW
-	EXX
+	EXX			;
 	POP	DE		; To DE
 	EX	DE,HL		; MSB to HL, LSB to DE
 	XOR	A		; Clear IORESULT
 	RET
 
+;	Long Multiply HL':HL by 60d
 LMUL60:	CALL	LLDBCHL
 	CALL	LADHLHL		; *2
 	CALL	LADHLBC		; *3
@@ -1140,25 +1143,28 @@ LMUL60:	CALL	LLDBCHL
 	CALL	LADHLHL		; *60
 	RET
 
-LLDBCHL	LD	B,H
-	LD	C,L
-	EXX
-	LD	B,H
-	LD	C,L
-	EXX
-	RET
+;	Long Move HL':HL to BC':BC
+LLDBCHL	LD	B,H		;
+	LD	C,L		;
+	EXX			;
+	LD	B,H		;
+	LD	C,L		;
+	EXX			;
+	RET			;
 
-LADHLHL	ADD	HL,HL
-	EXX
-	ADC	HL,HL
-	EXX
-	RET
+;	Long Shift HL':HL left by 1 bit
+LADHLHL	ADD	HL,HL		;
+	EXX			;
+	ADC	HL,HL		;
+	EXX			;
+	RET			;
 
-LADHLBC	ADD	HL,BC		; *3
-	EXX
-	ADC	HL,BC
-	EXX
-	RET
+;	Long Add BC':BC to HL':HL
+LADHLBC	ADD	HL,BC		;
+	EXX			;
+	ADC	HL,BC		;
+	EXX			;
+	RET			;
 
 ;-----------------------------------------------------------------------------
 ;	Variables for disk I/O
