@@ -1,9 +1,11 @@
 ;
 DISK0	EQU	20		;First disk number in set
-DEBUG	EQU	1		;Debug mode        ^                ^
-TEST	EQU	0		;Load SBIOSTESTER /!\ ERASES DISKS /!\
-				;                -----            -----
-PRIMARY	EQU	1		;Load Primary bootstrap
+DEBUG	EQU	0		;Debug mode
+
+	include	datetime.asm
+
+CR	EQU	0DH
+LF	EQU	0AH
 
 $BREAK	MACRO
 	IF	DEBUG
@@ -19,6 +21,7 @@ $BREAK	MACRO
 	ORG	80H
 BOOTZ80:
 ;	HALT
+	DI
 
 	LD	SP,80H
 
@@ -33,7 +36,7 @@ BOOTZ80:
 	LD	(1),HL
 	JP	MAIN
 
-	ORG	100H			; 100H
+	ORG	100H
 					;
 MAIN:					;LET'S BOOT UCSD PASCAL
 ;
@@ -50,23 +53,23 @@ MAIN:					;LET'S BOOT UCSD PASCAL
 ;	BOOTING UCSD PASCAL SYSTEM.
 ;
 ;	ADAPTED FOR Z80SIM, AUGUST 2008, UDO MUNK
+;	ADAPTED FOR Z80-MBC2, AUGUST 2019, MICHEL B.
 ;
 BOOT	EQU	8200H		; SECONDARY BOOTSTRAP LOADED HERE
 MSIZE	EQU	64		; MEMORY SIZE FOR ASSEMBLY
-BIAS	EQU	(MSIZE*1024)-01900H
+BIAS	EQU	(MSIZE*1024)-01A00H
 CBIOS	EQU	1500H+BIAS	; ORIGIN POINT
 SECNUM	EQU	16		; SECONDARY BOOTSTRAP IS 16 SECTORS LONG
 SECSEC	EQU	3		; SECONDARY BOOTSTRAP ON THIS SECTOR
-;BIOSNUM	EQU	2		; CBIOS IS 8 SECTORS LONG
-;BIOSSEC	EQU	1		; CBIOS IS ON THIS SECTOR
-;
-;	ORG	0		; WHATEVER IS RIGHT FOR YOUR SYSTEM
 ;
 PBOOT:	LD	HL,CBIOS	; CBIOS GOES HERE
 	LD	SP,HL		; RESET THE STACK
-;	LD	D,BIOSNUM	; D - # OF SECTORS TO READ
-;	LD	E,BIOSSEC	; E - STARTING SECTOR
-;	CALL	READIT		; READ IN CBIOS
+
+	LD	HL,HELLO$	; Copyright Text
+	CALL	PUTS
+
+	LD	HL,READING$	; 'Reading Secondary Bootstrap'
+	CALL	PUTS		;
 	LD	HL,BOOT		; LOAD BOOT BASE ADDRESS
 	LD	D,SECNUM	; D - # OF SECTORS TO READ
 	LD	E,SECSEC	; E - STARTING SECTOR
@@ -94,7 +97,9 @@ PBOOT:	LD	HL,CBIOS	; CBIOS GOES HERE
 	LD	DE,CBIOS+3	; START OF THE SBIOS (JMP WBOOT)
 	PUSH	DE
 	PUSH	HL		; STARTING ADDRESS OF INTERPRETER
-;	$BREAK
+	LD	HL,BOOTING$	; 'Booting to UCSD Pascal'
+	CALL	PUTS		;
+	$BREAK			;
 	JP	BOOT		; ENTER SECONDARY BOOTSTRAP
 ;
 ;	  READIT MUST READ THE NUMBER OF SECTORS SPECIFIED IN THE D
@@ -103,7 +108,7 @@ PBOOT:	LD	HL,CBIOS	; CBIOS GOES HERE
 ;
 READIT:
 ;
-;  PUT YOUR CODE IN HERE
+;  	PUT YOUR CODE IN HERE
 ;
 	PUSH	HL
 	LD	C,0		; SELECT DRIVE 0
@@ -129,16 +134,47 @@ L2:
 	LD	BC,80H		; 128 BYTES PER SECTOR
 	ADD	HL,BC		; DMA ADDRESS + 128
 	JP	L1		; GO READ NEXT
+
+PUTS:	LD	A,(HL)
+	OR	A
+	RET	Z
+	LD	C,A
+	CALL	CONOUT		;SEND CHAR TO TERMINAL
+	INC	HL
+	JR	PUTS
+
+
+
+
+;	UCSD p-System IV CBIOS for Z80-MBC2
 ;
+;	Copyright (C) 2019 by GmEsoft
+;
+;
+;
+;	copyright text
+;
+HELLO$:
+	DB	'64K UCSD p-System IV.0 CBIOS V1.1 for Z80-MBC2, '
+	DB	'Copyright (C) 2019 by GmEsoft'
+	DB	CR,LF
+	DB	'Build: '
+	$DATE
+	DB	' - '
+	$TIME
+	DB	CR,LF,0
+
+READING$:
+	DB	CR,LF,'Reading Secondary Bootstrap',0
+BOOTING$:
+	DB	CR,LF,LF,'Booting to UCSD Pascal',0
+
+
 
 $BIOS_BEGIN
     	PHASE	BIOS
-;	UCSD p-System IV CBIOS for Z80-Simulator
-;
-;	Copyright (C) 2008 by Udo Munk
-;
 MSIZE	EQU	64		;memory size in kilobytes
-BIAS	EQU	(MSIZE*1024)-01900H
+BIAS	EQU	(MSIZE*1024)-01A00H
 BIOS	EQU	1500H+BIAS	;base of bios
 
 
@@ -162,12 +198,9 @@ WBOOTE: JP	WBOOT		;warm start
 	JP	WRITE		;write disk
 	JP	LISTST		;return list status
 	JP	SECTRAN		;sector translate
-;
-;	copyright text
-;
-	DEFM	'64K UCSD p-System IV.0 CBIOS V1.1 for Z80SIM, '
-	DEFM	'Copyright 2008 by Udo Munk'
-	DEFB	13,10,0
+	REPT	10H
+	DB	76H,0C9H,00H	;HALT - RET - NOP
+	ENDM
 ;
 ;	individual subroutines to perform each function
 ;	simplest case is to just perform parameter initialization
@@ -187,6 +220,33 @@ WBOOT:
 ;	console status, return 0ffh if character ready, 00h if not
 ;
 CONST:
+	PUSH	BC
+	LD	BC,$-$
+KBTIMER	EQU	$-2
+	LD	A,B
+	OR	C
+	JR	Z,CONST1
+	DEC	BC
+	LD	(KBTIMER),BC
+	LD	A,B
+	OR	C
+	JR	NZ,CONST1
+	LD	BC,0101H	;OUT (1),1
+	IF	0
+	LD	A,7
+	OUT	(C),B
+	OUT	(0),A
+	LD	A,'_'
+	OUT	(C),B
+	OUT	(0),A
+	LD	A,8
+	OUT	(C),B
+	OUT	(0),A
+	ENDIF
+	LD	A,(DIRTY)
+	OR	A
+	CALL	NZ,WRITE512
+CONST1:	POP	BC
 	LD	A,83H		;SYSFLAGS
 	OUT	(1),A
 	IN	A,(0)		;get console status
@@ -197,9 +257,54 @@ CONST:
 ;
 ;	console character into register a
 ;
-CONIN:
-	IN	A,(1)		;get character from console
+CONIN:	LD	A,$-$
+LASTKEY	EQU	$-1
+	CP	'K'-20H		;Ctrl-K ?
+	JR	NZ,CONIN1
+	IN	A,(1)
+	AND	0DFH		;to uppercase
+	LD	(KEYMAP),A
+	XOR	A
 	RET
+CONIN1:	IN	A,(1)		;get character from console
+	INC	A		;0FFH if no char -> 0
+	RET	Z
+	DEC	A
+	PUSH	BC
+;	LD	BC,60000	;init KBD timer
+;	LD	(KBTIMER),BC
+	LD	C,A
+	LD	A,$-$
+KEYMAP	EQU	$-1
+	CP	'B'
+	CALL	Z,keybbe
+	LD	A,C
+	POP	BC
+	RET
+
+
+keybbe:
+	ld	a,c
+	rlca
+	ret	c
+	push	hl
+	ld	hl,keybbe$
+	ld	b,0
+	add	hl,bc
+	ld	c,(hl)
+	pop	hl
+	ret
+
+keybbe$:
+	db	00h,11h,02h,03h,04h,05h,06h,07h,08h,09h,0Ah,0Bh,0Ch,0Dh,0Eh,0Fh
+	db	10h,01h,12h,13h,14h,15h,16h,1Ah,18h,19h,17h,1Bh,1Ch,1Dh,1Eh,1Fh
+	db	' 1"3457''908_;):='
+	db	'a&e"''(Se!cMm.-/+'
+	db	'2QBCDEFGHIJKL?NO'
+	db	'PARSTUVZXYW[<$6o'
+	db	'<qbcdefghijkl,no'
+	db	'parstuvzxyw{>*>€'
+
 ;
 ;	console character output from register c
 ;
@@ -217,7 +322,6 @@ CONOUT:
 	OUT	(1),A		;
 	LD	A,'['		;send second lead in for ANSI terminals
 	OUT	(0),A
-;	$BREAK
 	RET
 ;
 ;	list character from register c
@@ -235,7 +339,7 @@ PUNCH:	JR	CONOUT
 ;
 ;	read character into register a from reader device
 ;
-READER: JR	CONIN
+READER: JP	CONIN
 ;
 ;
 ;	i/o drivers for the disk follow
@@ -300,7 +404,6 @@ READ:	XOR	A		;read command -> A
 ;	perform a write operation
 ;
 WRITE:
-;	$BREAK
 	LD	A,1		;write command -> A
 ;
 ;	enter here from read and write to perform the actual i/o
@@ -336,13 +439,8 @@ FLUSH:
 	LD	HL,DIRTY
 	LD	A,(HL)
 	OR	A
-	JR	Z,NOWRITE
-	PUSH	HL
-	CALL	WRITE512
-	POP	HL
-	LD	(HL),A
+	CALL	NZ,WRITE512
 	JR	NZ,WAITIOX
-NOWRITE:
 	LD	A,(NEWDSK)
 	LD	HL,CURDSK
 	CP	(HL)
@@ -355,7 +453,6 @@ NOWRITE:
 	OUT	(0),A
 NOSELDSK:
 	CALL	READ512
-;	$BREAK
 	JR	NZ,WAITIOX
 NOREAD:
 	LD	DE,BUFFER
@@ -380,6 +477,8 @@ WRITEIO:
 	LD	(DIRTY),A
 	EX	DE,HL
 	LDIR
+	LD	B,10H
+	LD	(KBTIMER),BC
 	XOR	A
 
 WAITIOX:
@@ -423,6 +522,10 @@ RETSTAT:
 
 
 WRITE512:
+	XOR	A
+	OUT	(1),A		;USER LED
+	INC	A
+	OUT	(0),A		;LED ON
 	LD	A,0AH		;SELTRACK
 	OUT	(1),A
 	LD	BC,(CURTRK)
@@ -440,6 +543,10 @@ WRITE512:
 	OUT	(1),A
 	OTIR
 	OTIR
+	XOR	A
+	LD	(DIRTY),A
+	OUT	(1),A		;USER LED
+	OUT	(0),A		;LED OFF
 	JR	RETSTAT
 
 CURDSK	DB	0FFH

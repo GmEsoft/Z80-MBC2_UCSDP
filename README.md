@@ -1,10 +1,9 @@
-# Z80-MBC2_UCSDP
-
-UCSD p-System Bootloader for Z80-MBC2
-
+Z80-MBC2_UCSDP
+==============
 
 
-**64K UCSD p-System IV.0 CBIOS V0.1 for Z80-MBC2 - (C) 2019 by GmEsoft**
+64K UCSD p-System IV.0 CBIOS V1.1 for Z80-MBC2 - (C) 2019 by GmEsoft
+--------------------------------------------------------------------
 
 
 This  is  a  custom  bootstrap  loader  to load the "Adaptable p-System IV" for 8080/Z-80 on the Z80-MBC2 board.
@@ -42,8 +41,25 @@ Quick startup procedure:
 
 
 
+Regional keyboard mapping:
+--------------------------
+
+This  version  of  the  bootloader  contains  a  keyboard  translation map for the `BE` (Belgian) keyboard. By default the
+original  `US` keyboard layout of the UTERM is used. To switch to the `BE` layout, if a `BE` keyboard is connected to the PS/2
+port,  press  `<Ctrl>-<Shift>-<)>` then `<B>`. To switch back to the `US` layout, press `<Ctrl>-<Shift>-<)>` then `<U>`. On the `US`
+keyboard, the key combination is `<Ctrl>-<Shift>-<_>` ; the `<_>` key is immediately at the right of the `<0>` key.
+
+Because  the non-ASCII chars (accented letters, symbols) can't be handled by the terminal, their corresponding keys have
+been redefined as follows:
+
+    é    §    è    ç    à    °    ^    ¨    ù    `    £    ²    ³   ^µ   ^$
+    [    #    ]    ^    @    \    {    }    `    <    >    |    ~    |    ~
+
+
+
 How to create the set of disks ?
 --------------------------------
+
 1: Download  the  original  disk  image  from the web. I chose to download them from the Z80-SIM page at `ClassicCmp.org`,
 at this URL:
 	http://www.classiccmp.org/cpmarchives/cpm/mirrors/www.unix4fun.org/z80pack/ftp/ucsd-iv.tgz
@@ -65,7 +81,7 @@ The syntax for makedisk is:
           [ [-I:infile] [-XI:input interleave] [-KI:input skew]
              -F:[T]from -T:[T]to -D:[T]dest ... ]
              -P:[T]padsize
-          T for whole tracks, else sectors
+                 T for whole tracks, else sectors
     Defaults:
              -L:128   bytes per sector
              -SI:26   sectors per side for input (8inch format)
