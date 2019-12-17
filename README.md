@@ -6,7 +6,7 @@ Z80-MBC2_UCSDP
 ----------------------------------------------------------------------
 
 
-This  is a  custom bootstrap  loader to  load  the *Adaptable p-System IV*  for 8080/Z-80  on the  Z80-MBC2 board.
+This  is a  custom bootstrap  loader to  load  the **Adaptable p-System IV**  for 8080/Z-80  on the  Z80-MBC2 board.
 
 The  loader was initially designed  to replace the `autoboot.bin` file on the SD card. It will mount one
 or  more  UCSD Pascal  disk images, then  load and execute  the secondary  bootstrap from the first disk
@@ -58,7 +58,7 @@ keyboard, the key combination is `Ctrl-Shift-_` ; the `_` key is immediately at 
 Because  the non-ASCII chars (accented letters, symbols) can't be handled by the terminal, their corresponding keys have
 been redefined as follows:
 
-    From:  é    §    è    ç    à    °    ^    ¨    ù    `    £    ²    ³   ^µ   ^$
+    From:  Ã©    Â§    Ã¨    Ã§    Ã     Â°    ^    Â¨    Ã¹    `    Â£    Â²    Â³   ^Âµ   ^$
     To:    [    #    ]    ^    @    \    {    }    `    <    >    |    ~    |    ~
 
 
