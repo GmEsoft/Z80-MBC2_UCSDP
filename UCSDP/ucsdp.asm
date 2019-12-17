@@ -1,5 +1,5 @@
 ;=============================================================================
-;	UCSD p-System Bootstrap Loader and SBIOS V1.2 for Z80-MBC2
+;	UCSD p-System Bootstrap Loader and SBIOS V1.2a for Z80-MBC2
 ;=============================================================================
 ;
 ;	Build:
@@ -13,6 +13,8 @@
 ; 	Settings
 DISK0	EQU	20		; First disk number in set
 DEBUG	EQU	0		; Debug mode
+EXTBIOS	EQU	0		;
+SBIOS	EQU	0
 
 ;-----------------------------------------------------------------------------
 ;	This auto-generated file defines $DATE and $TIME macros
@@ -182,7 +184,7 @@ READSEC$:
 ;
 ;
 HELLO$:	DB	ESC,'H',ESC,'J'
-	DB	'64K UCSD p-System IV.0 SBIOS V1.2 for Z80-MBC2, '
+	DB	'64K UCSD p-System IV.0 SBIOS V1.2a for Z80-MBC2, '
 	DB	'Copyright (C) 2019 by GmEsoft'
 	DB	CR,LF
 	DB	'Build: '
@@ -519,8 +521,13 @@ BIOS	EQU	1500H+BIAS	; base of bios
 ;
 ;	Jump vector for individual subroutines
 ;
-	JP	CBOOT		; cold start
-WBOOTE: JP	WBOOT		; warm start
+	JP	CBOOT		; cold start / sys init
+WBOOTE: JP	WBOOT		; warm start / sys halt
+
+	IF	SBIOS
+	JP	CONINIT		; console initialize
+	ENDIF
+
 	JP	CONST		; console status
 	JP	CONIN		; console character in
 	JP	CONOUT		; console character out
@@ -534,11 +541,34 @@ WBOOTE: JP	WBOOT		; warm start
 	JP	SETDMA		; set dma address
 	JP	READ		; read disk
 	JP	WRITE		; write disk
+
+	IF	SBIOS
+	JP	DSKINIT		; reset disk
+	JP	DSKSTRT		; activate disk
+	JP	DSKSTOP		; de-act disk
+	ELSE
 	JP	LISTST		; return list status
 	JP	SECTRAN		; sector translate
 	REPT	20H
 	JP	WBOOT		; do a HALT
 	ENDM
+	ENDIF
+
+	IF	EXTBIOS
+	JP	PRNINIT		;
+	JP	PRNSTAT		;
+	JP	PRNREAD		;
+	JP	PRNWRIT		;
+	JP	REMINIT		;
+	JP	REMSTAT		;
+	JP	REMREAD		;
+	JP	REMWRIT		;
+	JP	USRINIT		;
+	JP	USRSTAT		;
+	JP	USRREAD		;
+	JP	USRWRIT		;
+	JP	CLKREAD		; system clock read
+	ENDIF
 
 ;-----------------------------------------------------------------------------
 ;
@@ -563,6 +593,12 @@ WBOOT:
 ;-----------------------------------------------------------------------------
 ;	simple i/o handlers
 ;
+;-----------------------------------------------------------------------------
+;	console init, return 0ffh if terminal ready, 00h if not
+;
+CONINIT	XOR	A
+	RET
+
 ;-----------------------------------------------------------------------------
 ;	console status, return 0ffh if character ready, 00h if not
 ;
@@ -938,6 +974,17 @@ WRITE512:
 	OUT	(0),A		; set the LED off
 	JR	RETSTAT		; check the error status and exit
 
+
+;-----------------------------------------------------------------------------
+;
+;	initialize disk, (de-)activate disk
+;
+DSKINIT:
+DSKSTRT:
+DSKSTOP:
+
+	XOR	A
+	RET
 
 ;-----------------------------------------------------------------------------
 ;	Variables for disk I/O
