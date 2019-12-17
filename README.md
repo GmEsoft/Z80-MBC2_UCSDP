@@ -2,22 +2,28 @@ Z80-MBC2_UCSDP
 ==============
 
 
-64K UCSD p-System IV.0 CBIOS V1.1 for Z80-MBC2 - (C) 2019 by GmEsoft
---------------------------------------------------------------------
+64K UCSD p-System IV.0 C/SBIOS V1.3 for Z80-MBC2 - (C) 2019 by GmEsoft
+----------------------------------------------------------------------
 
 
-This  is  a  custom  bootstrap  loader  to load the "Adaptable p-System IV" for 8080/Z-80 on the Z80-MBC2 board.
+This  is a  custom bootstrap  loader to  load  the *Adaptable p-System IV*  for 8080/Z-80  on the  Z80-MBC2 board.
 
-The loader has been designed to replace the `autoboot.bin` file on the SD card. It  will  mount  one or more UCSD Pascal
-disk images, then load and execute the secondary bootstrap from the first disk image.
+The  loader was initially designed  to replace the `autoboot.bin` file on the SD card. It will mount one
+or  more  UCSD Pascal  disk images, then  load and execute  the secondary  bootstrap from the first disk
+image.
 
-Two  disk  images  have been prepared for this system. They have been converted from the original 77-track 8 inch floppy
-disk images ; the link to the location from where the disk images is given below.
+The  bootloader  can also be built  as a bootloader  for an additional disk  set. In this case, the disk
+image  files will need to  be renamed from `DS2Nxx.DSK` to `DSmNxx.DSK`, with `m` = the disk set number. So,
+for the 4th disk set, the DSK names will begin from `DS3N20.DSK`.
 
-The   new  disk  image  format  for  the  Z80-MBC2  board  is of up to  77 tracks of 128 sectors, each of 128 bytes, for
-a   maximum   of  1.2  megabytes. The images are stored in  files  `DSnNxx.DSK`,  with `xx` starting from 20 for the first
-disk. The disk set `n` must be chosen from the config screen, so for the disk set number 2, we have  to  first  activate
-CP/M 3.0 using the menu option `8: Change Disk set` ; then select `4: Autoboot` to load UCSD Pascal.
+Two  disk images have been prepared for this system. They have been converted from the original 77-track
+8 inch floppy disk images ; the link to the location from where the disk images is given below.
+
+The  new  disk image format  for the Z80-MBC2 board  is of up  to 77 tracks  of 128 sectors, each of 128
+bytes,  for  a maximum of 1.2  megabytes. The images are  stored in files `DSnNxx.DSK`, with `xx` starting
+from  `20` for the first disk. The disk set 'n' must be chosen from the config screen, so for the disk set
+number  `2`, we have  to first activate CP/M 3.0 using  the menu option `8: Change Disk set` ; then select
+`4: Autoboot` to load UCSD Pascal.
 
 In the provided set:
 - `DS2N20.DSK` = disk 0 = `SYS1:` (loaded as unit `#4`);
@@ -46,14 +52,76 @@ Regional keyboard mapping:
 
 This  version  of  the  bootloader  contains  a  keyboard  translation map for the `BE` (Belgian) keyboard. By default the
 original  `US` keyboard layout of the UTERM is used. To switch to the `BE` layout, if a `BE` keyboard is connected to the PS/2
-port,  press  `<Ctrl>-<Shift>-<)>` then `<B>`. To switch back to the `US` layout, press `<Ctrl>-<Shift>-<)>` then `<U>`. On the `US`
-keyboard, the key combination is `<Ctrl>-<Shift>-<_>` ; the `<_>` key is immediately at the right of the `<0>` key.
+port,  press  `Ctrl-Shift-)` then `B`. To switch back to the `US` layout, press `Ctrl-Shift-)` then `U`. On the `US`
+keyboard, the key combination is `Ctrl-Shift-_` ; the `_` key is immediately at the right of the `0` key.
 
 Because  the non-ASCII chars (accented letters, symbols) can't be handled by the terminal, their corresponding keys have
 been redefined as follows:
 
     From:  é    §    è    ç    à    °    ^    ¨    ù    `    £    ²    ³   ^µ   ^$
     To:    [    #    ]    ^    @    \    {    }    `    <    >    |    ~    |    ~
+
+
+
+With  the bootloader  version 1.3, it is also  possible to configure the initial keyboard mapping in the
+boot setup manu. See below.
+
+
+
+Bootloader setup menu:
+----------------------
+
+It  is  possible to configure some  settings of the UCSD  p-System before booting it. Those settings are
+stored  in the last sector of the first disk's first track, track 0 512-byte sector 31, in the last 128-
+byte subsector (usually unused). Please note that the UCSD p-System works with 128-byte logical sectors,
+but the host Z80-MBC2 works using 512-byte physical sectors (FAT-32).
+
+To  access the  setup menu, the USER  button needs to be  pressed while launching the p-System. Boot the
+system  while holding the USER  button down, keep the button down while pressing the number `3` (to boot
+the loader using the selected disk set) or `4` (to boot the custom AUTOBOOT.BIN file).
+
+A screen like this one will appear:
+
+
+    64K UCSD p-System IV.0 C/SBIOS V1.3 for Z80-MBC2, Copyright (C) 2019 by GmEsoft
+    Build: Sep 05 2019 - 09:36:01
+
+    Scanning Volumes: [++++++++++++++++++++++++++++++++++++++++++++++++++]
+
+    Available volumes:
+    20:SYS1C     21:SYS2      22:INTERP    23:ADVX      24:ADVSRC    25:SYSCPM1
+    26:STARTUP   27:UTIL1     28:ASM1      29:STARTRK   30:GAMES     31:KBDB
+    32:KBDBX     33:88SYS     34:88SYS     35:SYSCPM1   36:Z8SYS     37:INTCPM
+    38:INTZ80    39:STARTUP   40:SYS1      41:STARTUP   42:SYS1      43:SYS3
+    44:SYSCPM1   45:UTIL1     46:UTIL1     48:ASM1      50:SYS1S     51:PASCAL1
+    80:88SYS     81:ASM1      82:ASM2      83:ASM3      84:INTCPM    85:STARTUP
+    86:SYS1      87:SYS2      88:SYS3      89:SYSCPM1   90:UTIL1     91:UTIL2
+
+
+    Select volume numbers (<T>ens, <U>nits, <ret> to accept):
+    #04 20:SYS1C   ?
+    #05 21:SYS2    ?
+    #09 51:PASCAL1 ?
+    #10 23:ADVX    ?
+    #11 24:ADVSRC  ?
+    #12 22:INTERP  ?
+
+    Select BIOS Type (<S>BIOS, <C>BIOS, <ret> to accept):CBIOS?
+
+    Select keyboard layout (<ret> to accept):U?
+
+
+The configurable settings are:
+
+-  the mapping  of 6 logical UCSD p-System 'block'  units (`#4`-`#5`, `#9`-`#12`) to 6 physical disk image files
+`DSn0xx.DSK`: the value of `n` is fixed, it is the disk set number; the value of `xx` is in the range `00`-`99`;
+
+-  the type  of BIOS: `CBIOS` and `SBIOS`:  `CBIOS` must be selected  if the boot disk image is `CP/M Adaptive
+System`  and `SBIOS`  must be selected if the boot  disk image is `Full Adaptive System`. The jump vectors
+and the registers used to exchange parameters between the system and the BIOS routines are different and
+incompatible (more info later about this);
+
+- the initial keyboard mapping: currently choice is given among `US` and `BE` mappings.
 
 
 
@@ -158,7 +226,7 @@ Now using  F)iler rename  `NEW.PASCAL` to `SYSTEM.PASCAL`:
     Crunch what vol ? --> :
     From end of disk, block 2432  ? (Y/N) --> Y
 
-Reboot the system. The p-System should now use all 30 terminal's lines.
+Reboot the system. The p-System should now use all 30 UTERM's lines.
 
 
 	
