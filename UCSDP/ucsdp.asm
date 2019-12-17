@@ -1,5 +1,5 @@
 ;=============================================================================
-;	UCSD p-System Bootstrap Loader and SBIOS V1.2a for Z80-MBC2
+;	UCSD p-System Bootstrap Loader and C/SBIOS V1.3 for Z80-MBC2
 ;=============================================================================
 ;
 ;	Build:
@@ -13,8 +13,8 @@
 ; 	Settings
 DISK0	EQU	20		; First disk number in set
 DEBUG	EQU	0		; Debug mode
-EXTBIOS	EQU	0		;
-SBIOS	EQU	0
+EXTBIOS	EQU	1		;
+SBIOS	EQU	0		; System Bios vs. CP/M CBIOS
 
 ;-----------------------------------------------------------------------------
 ;	This auto-generated file defines $DATE and $TIME macros
@@ -37,11 +37,10 @@ $BREAK	MACRO
 ;	IPL entry
 	ORG	0
 	JP	BOOTZ80		; bootstrap routine
-	DC	3DH,0		; fill RST vector area with NULL
+	DC	38H,0		; fill RST vector area with NULL
 
 ;-----------------------------------------------------------------------------
 ;	Bootstrap routine, executed at first IPL
-	ORG	40H
 BOOTZ80:
 	DI
 
@@ -102,9 +101,12 @@ PBOOT:	LD	SP,BIOS		; CBIOS GOES HERE, RESET THE STACK
 	PUSH	HL
 	LD	HL,0100H	; BOTTOM OF MEMORY
 	PUSH	HL
-	LD	DE,BIOS+3	; START OF THE SBIOS (JMP WBOOT)
+	LD	DE,BIOS+3	; START OF THE SBIOS (JMP WBOOT)^
+$BIOS	EQU	$-2
 	PUSH	DE
 	PUSH	HL		; STARTING ADDRESS OF INTERPRETER
+;	LD	HL,0
+;	PUSH	HL
 	LD	HL,BOOTING$	; 'Booting to UCSD Pascal'
 	CALL	PUTS1		; Display message (after reset)
 	LD	A,0C3H		; For next reset actions:
@@ -113,7 +115,11 @@ PBOOT:	LD	SP,BIOS		; CBIOS GOES HERE, RESET THE STACK
 	LD	(1),HL		;
 	LD	A,0C9H		; - deactivate first IPL display routine
 	LD	(PUTS),A	;
-	JP	BOOT		; ENTER SECONDARY BOOTSTRAP
+	LD	HL,BOOT
+	LD	A,(HL)
+	CP	0C3H
+	JP	NZ,NOSECBT
+	JP	(HL)		; ENTER SECONDARY BOOTSTRAP
 
 ;-----------------------------------------------------------------------------
 ;
@@ -164,7 +170,7 @@ PUTS1:	LD	A,(HL)		; Get char from message
 ;	Booting UCSD Pascal message, must fit below 0100H
 ;
 BOOTING$:
-	DB	CR,LF,LF,'Booting to UCSD Pascal',0
+	DB	CR,LF,LF,'Booting UCSD p-System',0
 
 ;	END of area 0000h-0100h which will remain untouched by P-System
 	ASSERT	$ < 0100H	; enforce that ...
@@ -184,7 +190,7 @@ READSEC$:
 ;
 ;
 HELLO$:	DB	ESC,'H',ESC,'J'
-	DB	'64K UCSD p-System IV.0 SBIOS V1.2a for Z80-MBC2, '
+	DB	'64K UCSD p-System IV.0 C/SBIOS V1.3 for Z80-MBC2, '
 	DB	'Copyright (C) 2019 by GmEsoft'
 	DB	CR,LF
 	DB	'Build: '
@@ -215,16 +221,20 @@ SETUP:	LD	HL,HELLO$	; Display welcome message
 	CP	0A5H		;   Last sector's byte == 0A5h
 	JR	NZ,DOCFG	; If yes skip applying config
 	LD	DE,DSKTBL	; Read disk map table
-	LD	BC,4		; 4 bytes
+	LD	BC,6		; 6 bytes
 	LDIR			;
+	LD	A,(HL)		; Read BIOS type
+	LD	($BSTYPE),A	; Save it
+	INC	HL		; Bump ptr
 	LD	A,(HL)		; Read keymap code
-	LD	(KEYMAP),A	;
+	LD	(KEYMAP),A	; Save it
 	LD	A,80H		; IOS:USER_KEY opcode
 	OUT	(1),A		; Send opcode
 	IN	A,(0)		; Read user key status
 	AND	1		;
 	JR	NZ,DOCFG	; Go to config if key pressed
 
+	CALL	SETBIOS		; Install SBIOS if selected
 	LD	HL,DOCFG$	; Display 'Press USER key ...'
 	JP	PUTS		; And return
 
@@ -247,8 +257,8 @@ SCAN1:	CALL	CONOUT		; Display 50 dashes
 LOOPDSK	PUSH	AF		; Save counter
 	LD	(IY),0		; Blank disk name
 	LD	HL,DSKTMP	; Use temporary slot for disk access
-	LD	(HL),A		; Map scanned image to slot 4
-	LD	C,4		; Select disk slot 4
+	LD	(HL),A		; Map scanned image to slot 6
+	LD	C,6		; Select disk slot 6
 	CALL	SELDSK		;
 	LD	C,1		; Select track 1 containing directory
 	CALL	SETTRK		;
@@ -350,7 +360,7 @@ NODSKNM	LD	A,L		; Move vol names table ptr
 	LD	HL,SELDSK$	; Display 'Select volume numbers ...'
 	CALL	PUTS		;
 	LD	HL,DSKTBL	; Init disk mapping table ptr
-	LD	B,4		; Number of entries = 4
+	LD	B,6		; Number of entries = 6
 	LD	C,4		; first p-System Logical unit number
 
 LOOPSEL	PUSH	BC		; Save counters
@@ -422,6 +432,29 @@ DSELNX1	DJNZ	LOOPSEL		; and loop again
 	LD	C,LF		; Move to next screen line
 	CALL	CONOUT		;
 
+;	Now ask BIOS type
+LOOPBS:	LD	HL,SLBIOS$	; Display 'Select BIOS type ...'
+	CALL	PUTS
+	LD	A,($BSTYPE)	; Get BIOS Type
+	LD	C,A
+	CALL	CONOUT		; Display 'S' or 'C'
+	LD	HL,BIOS$	; Displ 'BIOS'
+	CALL	PUTS
+LPBS1:	CALL	CONIN		; Get char from keyboard
+	CP	CR		; <RET> ?
+	JR	Z,OKBIOS	; If yes, accept
+	AND	0DFH		; to upper case
+	CP	'S'		; 'S' ?
+	JR	Z,SAVEBS	; If yes, save it
+	CP	'C'		; 'C' ?
+	JR	NZ,LPBS1	; Loop if not
+SAVEBS:	LD	($BSTYPE),A	; Save BIOS type
+	JR	LOOPBS		; And loop
+
+OKBIOS:	LD	C,LF		; Next screen line
+	CALL	CONOUT		;
+	CALL	CONOUT		;
+
 ;	Now ask keyboard mapping code
 LOOPKB:	LD	HL,LAYOUT$	; Display 'Keyboard layout ...'
 	CALL	PUTS		;
@@ -445,13 +478,16 @@ LOOPK1:	CALL	CONIN		; Get char from keyboard
 CFGSAVE	LD	HL,DSKTBL	; Copy disk mapping table
 	PUSH	IX		;
 	POP	DE		;   to config buffer
-	LD	BC,4		; 4 bytes to copy
+	LD	BC,6		; 6 bytes to copy
 	LDIR			;
+	LD	A,($BSTYPE)	; Get BIOS type
+	LD	(DE),A		; Save to config buffer
+	INC	DE		; Bump ptr
 	LD	A,(KEYMAP)	; Get keyboard mapping code
 	LD	(DE),A		; Save to config buffer
 	LD	A,DISK0		; Map slot 4 to DISK0
 	LD	(DSKTMP),A	;
-	LD	C,4		; Select slot 4
+	LD	C,6		; Select slot 4
 	CALL	SELDSK		;
 	LD	C,0		; Select track 0
 	CALL	SETTRK		;
@@ -462,8 +498,23 @@ CFGSAVE	LD	HL,DSKTBL	; Copy disk mapping table
 	POP	BC		;
 	CALL	SETDMA		; Set buffer address
 	CALL	WRITE		; Write sector
+	CALL	SETBIOS		; Install SBIOS if selected
 
 	RET			; Done, proceed loading secondary bootstrap.
+
+;-----------------------------------------------------------------------------
+;	SETUP BIOS
+SETBIOS	LD	A,'C'		; BIOS Type: <C>BIOS or <S>BIOS
+$BSTYPE	EQU	$-1
+	CP	'S'		; SBIOS type
+	RET	NZ		; Return if not
+	LD	HL,SBIOS_BEG	; Move SBIOS vector
+	LD	DE,BIOS		;   over CBIOS
+	LD	($BIOS),DE	; Update vector address for sec bootstrap
+	LD	BC,SBIOS_END-SBIOS_BEG
+	LDIR			; Move it
+	RET			; Done
+
 
 ;-----------------------------------------------------------------------------
 ;	OUT 'A' IN DECIMAL
@@ -490,6 +541,13 @@ OUTDEC11:
 	RET			; Done
 
 ;-----------------------------------------------------------------------------
+;	NO SECONDARY BOOTSTRAP
+NOSECBT	LD	HL,NOSECB$
+	CALL	PUTS1
+	HALT
+	JR	$
+
+;-----------------------------------------------------------------------------
 DOCFG$	DB	LF,'Press USER key while booting to change system setup.',CR,LF,0
 
 SCNDSK$	DB	LF,CR,'Scanning Volumes: [',0
@@ -498,7 +556,14 @@ AVAIL$	DB	LF,CR,LF,'Available volumes:',CR,LF,0
 
 SELDSK$	DB	CR,LF,LF,'Select volume numbers (<T>ens, <U>nits, <ret> to accept):',CR,LF,0
 
+SLBIOS$	DB	CR,'Select BIOS Type (<S>BIOS, <C>BIOS, <ret> to accept):',0
+
+BIOS$	DB	'BIOS?',0
+
 LAYOUT$	DB	CR,'Select keyboard layout (<ret> to accept):',0
+
+NOSECB$	DB	CR,LF,'Secondary bootstrap not present !'
+HALTED$	DB	CR,LF,LF,'** SYSTEM HALTED **',0
 
 ;-----------------------------------------------------------------------------
 	DS	1 + low not $	; go to next 256 bytes boundary
@@ -507,52 +572,27 @@ DIRBUF:	DS	128		; Sector buffer for directory
 DSKNAMES:
 	DS	100*16		; Disk names table
 
-;-----------------------------------------------------------------------------
-;	CBIOS area begin, to move in high memory at first IPL
-;
-$BIOS_BEGIN
-    	PHASE	BIOS		; where the CBIOS code will be moved
-MSIZE	EQU	64		; memory size in kilobytes
-BIAS	EQU	(MSIZE*1024)-01A00H
-BIOS	EQU	1500H+BIAS	; base of bios
-
 
 ;-----------------------------------------------------------------------------
+;	SBIOS jump vectors, to move over CBIOS vectors if SBIOS mode selected
 ;
-;	Jump vector for individual subroutines
 ;
-	JP	CBOOT		; cold start / sys init
-WBOOTE: JP	WBOOT		; warm start / sys halt
-
-	IF	SBIOS
+SBIOS_BEG:
+	JP	SYSINIT		; Initialize system
+	JP	SYSHALT		; Halt system
 	JP	CONINIT		; console initialize
-	ENDIF
-
-	JP	CONST		; console status
-	JP	CONIN		; console character in
+	JP	CONSTAT		; console status
+	JP	CONREAD		; console character in
 	JP	CONOUT		; console character out
-	JP	LIST		; list character out
-	JP	PUNCH		; punch character out
-	JP	READER		; reader character out
-	JP	HOME		; move head to home position
 	JP	SELDSK		; select disk
 	JP	SETTRK		; set track number
 	JP	SETSEC		; set sector number
 	JP	SETDMA		; set dma address
 	JP	READ		; read disk
 	JP	WRITE		; write disk
-
-	IF	SBIOS
 	JP	DSKINIT		; reset disk
 	JP	DSKSTRT		; activate disk
 	JP	DSKSTOP		; de-act disk
-	ELSE
-	JP	LISTST		; return list status
-	JP	SECTRAN		; sector translate
-	REPT	20H
-	JP	WBOOT		; do a HALT
-	ENDM
-	ENDIF
 
 	IF	EXTBIOS
 	JP	PRNINIT		;
@@ -568,7 +608,47 @@ WBOOTE: JP	WBOOT		; warm start / sys halt
 	JP	USRREAD		;
 	JP	USRWRIT		;
 	JP	CLKREAD		; system clock read
+	ELSE
+	REPT	13
+	DB	76H,00H,0C9H	; HALT,NOP,RET
+	ENDM
 	ENDIF
+SBIOS_END:
+
+;-----------------------------------------------------------------------------
+;	CBIOS area begin, to move in high memory at first IPL
+;
+$BIOS_BEGIN
+MSIZE	EQU	64		; memory size in kilobytes
+BIAS	EQU	(MSIZE*1024)-01A00H
+BIOS	EQU	1500H+BIAS	; base of bios
+    	PHASE	BIOS		; where the CBIOS code will be moved
+
+
+;-----------------------------------------------------------------------------
+;
+;	Jump vector for individual subroutines
+;
+	JP	CBOOT		; cold start / sys init
+WBOOTE: JP	WBOOT		; warm start / sys halt
+	JP	CONST		; console status
+	JP	CONIN		; console character in
+	JP	CONOUT		; console character out
+	JP	LIST		; list character out
+	JP	PUNCH		; punch character out
+	JP	READER		; reader character out
+	JP	HOME		; move head to home position
+	JP	SELDSK		; select disk
+	JP	SETTRK		; set track number
+	JP	SETSEC		; set sector number
+	JP	SETDMA		; set dma address
+	JP	READ		; read disk
+	JP	WRITE		; write disk
+	JP	LISTST		; return list status
+	JP	SECTRAN		; sector translate
+	REPT	11
+	DB	76H,00H,0C9H	; HALT,NOP,RET
+	ENDM
 
 ;-----------------------------------------------------------------------------
 ;
@@ -579,13 +659,16 @@ WBOOTE: JP	WBOOT		; warm start / sys halt
 ;-----------------------------------------------------------------------------
 ;	Cold boot
 CBOOT:
+SYSINIT:
 	$BREAK			; break into simulator's debugger
 	RET			; done
 
 ;-----------------------------------------------------------------------------
-;	Warm boot
+;	Warm boot / halt
 WBOOT:
+SYSHALT:
 	DI			; interrupts off
+;	$BREAK
 	HALT			; halt system
 	RET			; ret if not halted
 ;
@@ -627,26 +710,40 @@ CONST1:	POP	BC		; Restore register
 	LD	A,0FFH		; else return A=0FFh
 	RET			;
 
+CONSTAT	CALL	CONST
+RETATOC	LD	C,A
+	XOR	A
+	RET
+
 ;-----------------------------------------------------------------------------
 ;
 ;	console character into register a
 ;
+CONREAD	CALL	CONIN
+	OR	A
+	JR	Z,CONREAD
+	JR	RETATOC
+
 CONIN:	LD	A,$-$		; Get last key
 LASTKEY	EQU	$-1		;
 	CP	'_'-40H		; Ctrl-_ ? (used for special funcs)
 	JR	NZ,CONIN1	; Go if not
+
 	IN	A,(1)		; Read char from term kbd
 	INC	A		; Is there a char ?
 	RET	Z		; done if no, returning A=0
+
 	DEC	A		; recover char
 	AND	0DFH		; Convert letter to upper case
 	LD	(KEYMAP),A	; Save as keymap code
 	LD	(LASTKEY),A	; Save as last key
 	LD	A,'_'-40H	; Return initial char
 	RET			;
+
 CONIN1:	IN	A,(1)		; get character from console
 	INC	A		; Is there a char ?
 	RET	Z		; done if yes, returning A=0
+
 	DEC	A		; recover char
 	LD	(LASTKEY),A	; Save as last key
 	PUSH	BC		; Save regs
@@ -704,6 +801,7 @@ CONOUT:
 	OUT	(1),A		; Send IOS opcode
 	LD	A,'['		; Send second lead in for ANSI terminals
 	OUT	(0),A		;
+	XOR	A		; Clear for SBIOS
 	RET			; done
 
 ;-----------------------------------------------------------------------------
@@ -982,16 +1080,92 @@ WRITE512:
 DSKINIT:
 DSKSTRT:
 DSKSTOP:
-
+PRNINIT:
+PRNSTAT:
+PRNREAD:
+PRNWRIT:
+REMINIT:
+REMSTAT:
+REMREAD:
+REMWRIT:
+USRINIT:
+USRSTAT:
+USRREAD:
+USRWRIT:
 	XOR	A
+	RET
+
+;-----------------------------------------------------------------------------
+;	System clock read
+CLKREAD:
+	LD	A,84h		; IOS:DATETIME opcode
+	OUT	(1),A		; Send opcode
+	IN	A,(0)
+	LD	E,A		; Secs
+	IN	A,(0)
+	LD	D,A		; Mins
+	IN	A,(0)
+	LD	L,A		; Hours
+	LD	H,0
+	EXX			;
+	LD	HL,0		;
+	EXX			;
+	CALL	LMUL60		; Long mult by 60
+	LD	C,D		; Get mins
+	LD	B,0		; Clear D for later
+	LD	D,B		;
+	ADD	HL,BC		; Add mins
+	CALL	LMUL60		;
+	ADD	HL,DE		; Add secs (no carry necessary
+	EXX
+	ADC	HL,BC		; Report carry (BC' == 0)
+	EXX
+	CALL	LMUL60		; Long mult by 60
+	EXX
+	PUSH	HL		; Get MSW
+	EXX
+	POP	DE		; To DE
+	EX	DE,HL		; MSB to HL, LSB to DE
+	XOR	A		; Clear IORESULT
+	RET
+
+LMUL60:	CALL	LLDBCHL
+	CALL	LADHLHL		; *2
+	CALL	LADHLBC		; *3
+	CALL	LLDBCHL		;
+	CALL	LADHLHL		; *6
+	CALL	LADHLHL		; *12
+	CALL	LADHLBC		; *15
+	CALL	LADHLHL		; *30
+	CALL	LADHLHL		; *60
+	RET
+
+LLDBCHL	LD	B,H
+	LD	C,L
+	EXX
+	LD	B,H
+	LD	C,L
+	EXX
+	RET
+
+LADHLHL	ADD	HL,HL
+	EXX
+	ADC	HL,HL
+	EXX
+	RET
+
+LADHLBC	ADD	HL,BC		; *3
+	EXX
+	ADC	HL,BC
+	EXX
 	RET
 
 ;-----------------------------------------------------------------------------
 ;	Variables for disk I/O
 
 ;	Disk mapping table for drives 0-3
-DSKTBL	DB	DISK0, DISK0+1, DISK0+2, DISK0+3
-DSKTMP	DB	0		; Temp disk number for drive 4
+DSKTBL	DB	DISK0, DISK0+1, DISK0+2, DISK0+3, DISK0+4, DISK0+5
+DSKTMP	DB	0		; Temp disk number for drive 6
 CURDSK	DB	0FFH		; current disk #
 CURTRK	DW	0FFFFH		; current track #
 CURSEC	DB	0FFH		; current sector #
