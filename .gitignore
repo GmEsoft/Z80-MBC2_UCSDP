@@ -1,0 +1,11 @@
+*.DAT
+
+*.bak
+
+*.exe
+
+/UCSDP/ucsdp
+
+/UCSDP/zmac
+/UCSDP/*.bin
+/UCSDP/*.obj
