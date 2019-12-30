@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <time.h>
-//#include <cstring>
 
 char *months[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", 
                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
