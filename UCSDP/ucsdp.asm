@@ -190,7 +190,7 @@ READSEC$:
 ;
 ;
 HELLO$:	DB	ESC,'H',ESC,'J'
-	DB	'64K UCSD p-System IV.0 C/SBIOS V1.3 for Z80-MBC2, '
+	DB	'64K UCSD p-System IV.0 C/SBIOS V1.31 for Z80-MBC2, '
 	DB	'Copyright (C) 2019 by GmEsoft'
 	DB	CR,LF
 	DB	'Build: '
@@ -225,9 +225,6 @@ SETUP:	LD	HL,HELLO$	; Display welcome message
 	LDIR			;
 	LD	A,(HL)		; Read BIOS type
 	LD	($BSTYPE),A	; Save it
-	INC	HL		; Bump ptr
-	LD	A,(HL)		; Read keymap code
-	LD	(KEYMAP),A	; Save it
 	LD	A,80H		; IOS:USER_KEY opcode
 	OUT	(1),A		; Send opcode
 	IN	A,(0)		; Read user key status
@@ -455,25 +452,6 @@ OKBIOS:	LD	C,LF		; Next screen line
 	CALL	CONOUT		;
 	CALL	CONOUT		;
 
-;	Now ask keyboard mapping code
-LOOPKB:	LD	HL,LAYOUT$	; Display 'Keyboard layout ...'
-	CALL	PUTS		;
-	LD	A,(KEYMAP)	; Get kb mapping code
-	LD	C,A		;
-	CALL	CONOUT		; Display it
-	LD	C,'?'		; Display '?'
-	CALL	CONOUT		;
-LOOPK1:	CALL	CONIN		; Get char from keyboard
-	CP	CR		; <RET> ?
-	JR	Z,CFGSAVE	; If yes, accept
-	AND	0DFH		; Convert to upper case
-	CP	'A'		; Is it a letter ?
-	JR	C,LOOPK1	; Loop again if not
-	CP	'Z'+1		;
-	JR	NC,LOOPK1	;
-	LD	(KEYMAP),A	; Save keyboard mapping code
-	JR	LOOPKB		; and loop again
-
 ;	Save new config to DISK0 track 0's last sector
 CFGSAVE	LD	HL,DSKTBL	; Copy disk mapping table
 	PUSH	IX		;
@@ -481,9 +459,6 @@ CFGSAVE	LD	HL,DSKTBL	; Copy disk mapping table
 	LD	BC,6		; 6 bytes to copy
 	LDIR			;
 	LD	A,($BSTYPE)	; Get BIOS type
-	LD	(DE),A		; Save to config buffer
-	INC	DE		; Bump ptr
-	LD	A,(KEYMAP)	; Get keyboard mapping code
 	LD	(DE),A		; Save to config buffer
 	LD	A,DISK0		; Map slot 4 to DISK0
 	LD	(DSKTMP),A	;
@@ -724,64 +699,13 @@ CONREAD	CALL	CONIN
 	JR	Z,CONREAD
 	JR	RETATOC
 
-CONIN:	LD	A,$-$		; Get last key
-LASTKEY	EQU	$-1		;
-	CP	'_'-40H		; Ctrl-_ ? (used for special funcs)
-	JR	NZ,CONIN1	; Go if not
-
-	IN	A,(1)		; Read char from term kbd
-	INC	A		; Is there a char ?
-	RET	Z		; done if no, returning A=0
-
-	DEC	A		; recover char
-	AND	0DFH		; Convert letter to upper case
-	LD	(KEYMAP),A	; Save as keymap code
-	LD	(LASTKEY),A	; Save as last key
-	LD	A,'_'-40H	; Return initial char
-	RET			;
-
-CONIN1:	IN	A,(1)		; get character from console
+CONIN:	IN	A,(1)		; get character from console
 	INC	A		; Is there a char ?
 	RET	Z		; done if yes, returning A=0
 
 	DEC	A		; recover char
-	LD	(LASTKEY),A	; Save as last key
-	PUSH	BC		; Save regs
-	LD	C,A		; Move Key code to C
-	LD	A,$-$
-KEYMAP	EQU	$-1		; Get keymap code
-	CP	'B'		; Check for BE keyboard layout
-	CALL	Z,keybbe	; Convert if yes (C contains converted key)
-	LD	A,C		; Get key code from C
-	POP	BC		; restore regs
 	RET			; Done
 
-
-;-----------------------------------------------------------------------------
-;	convert key for BE keyboard layout
-keybbe:
-	ld	a,c		; Get key code
-	rlca			; Check high bit
-	ret	c		; Return if key code >= 0x80
-	push	hl		; Save regs
-	ld	hl,keybbe$	; Ptr to Keyboard conversion map
-	ld	b,0		; Add offset
-	add	hl,bc		; to ptr
-	ld	c,(hl)		; Get converted key from map
-	pop	hl		; Restore regs
-	ret			; Done
-
-;-----------------------------------------------------------------------------
-;	BE keyboard map
-keybbe$:
-	db	00h,11h,02h,03h,04h,05h,06h,07h,08h,09h,0Ah,0Bh,0Ch,0Dh,0Eh,0Fh
-	db	10h,01h,12h,13h,14h,15h,16h,1Ah,18h,19h,17h,1Bh,'|','~',1Eh,1Fh
-	db	' 1%3457`908_;):='
-	db	'@&["''(#]!^Mm.-/+'
-	db	'2QBCDEFGHIJKL?NO'
-	db	'PARSTUVZXYW{<$6\'
-	db	'|qbcdefghijkl,no'
-	db	'parstuvzxyw}>*~',7FH
 
 ;-----------------------------------------------------------------------------
 ;
