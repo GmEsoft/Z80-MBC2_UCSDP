@@ -1,5 +1,5 @@
 ;=============================================================================
-;	UCSD p-System Bootstrap Loader and C/SBIOS V1.3 for Z80-MBC2
+;	UCSD p-System Bootstrap Loader and C/SBIOS V1.31 for Z80-MBC2
 ;=============================================================================
 ;
 ;	Build:
