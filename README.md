@@ -2,8 +2,8 @@ Z80-MBC2_UCSDP
 ==============
 
 
-64K UCSD p-System IV.0 C/SBIOS V1.3 for Z80-MBC2 - (C) 2019 by GmEsoft
-----------------------------------------------------------------------
+64K UCSD p-System IV.0 C/SBIOS V1.31 for Z80-MBC2 - (C) 2019 by GmEsoft
+-----------------------------------------------------------------------
 
 
 This  is a  custom bootstrap  loader to  load  the **Adaptable p-System IV**  for 8080/Z-80  on the  Z80-MBC2 board.
@@ -34,7 +34,7 @@ In the provided set:
 Quick startup procedure:
 ------------------------
 
-1. Copy the provided `autoboot.bin` file and the 2 disk images `DS2N20.DSK` and 
+1. Copy the provided `autoboot.bin` file and the 2 disk images `DS2N20.DSK` and
 `DS2N21.DSK` to the root folder of the SD card.
 
 2. Start the Z80-MBC2 with the USER button pressed, to get the config menu.
@@ -44,27 +44,6 @@ Quick startup procedure:
 4. Choose boot mode `4: Autoboot`.
 
 5. Enjoy UCSD Pascal.
-
-
-
-Regional keyboard mapping:
---------------------------
-
-This  version  of  the  bootloader  contains  a  keyboard  translation map for the `BE` (Belgian) keyboard. By default the
-original  `US` keyboard layout of the UTERM is used. To switch to the `BE` layout, if a `BE` keyboard is connected to the PS/2
-port,  press  `Ctrl-Shift-)` then `B`. To switch back to the `US` layout, press `Ctrl-Shift-)` then `U`. On the `US`
-keyboard, the key combination is `Ctrl-Shift-_` ; the `_` key is immediately at the right of the `0` key.
-
-Because  the non-ASCII chars (accented letters, symbols) can't be handled by the terminal, their corresponding keys have
-been redefined as follows:
-
-    From:  é    §    è    ç    à    °    ^    ¨    ù    `    £    ²    ³   ^µ   ^$
-    To:    [    #    ]    ^    @    \    {    }    `    <    >    |    ~    |    ~
-
-
-
-With  the bootloader  version 1.3, it is also  possible to configure the initial keyboard mapping in the
-boot setup manu. See below.
 
 
 
@@ -108,8 +87,6 @@ A screen like this one will appear:
 
     Select BIOS Type (<S>BIOS, <C>BIOS, <ret> to accept):CBIOS?
 
-    Select keyboard layout (<ret> to accept):U?
-
 
 The configurable settings are:
 
@@ -119,9 +96,7 @@ The configurable settings are:
 -  the type  of BIOS: `CBIOS` and `SBIOS`:  `CBIOS` must be selected  if the boot disk image is `CP/M Adaptive
 System`  and `SBIOS`  must be selected if the boot  disk image is `Full Adaptive System`. The jump vectors
 and the registers used to exchange parameters between the system and the BIOS routines are different and
-incompatible (more info later about this);
-
-- the initial keyboard mapping: currently choice is given among `US` and `BE` mappings.
+incompatible (more info later about this).
 
 
 
@@ -229,7 +204,7 @@ Now using  F)iler rename  `NEW.PASCAL` to `SYSTEM.PASCAL`:
 Reboot the system. The p-System should now use all 30 UTERM's lines.
 
 
-	
+
 How to build the bootloader ?
 -----------------------------
 
@@ -237,6 +212,3 @@ How to build the bootloader ?
 	http://48k.ca/zmac.html
 
 2: Execute `MAKEIT.BAT`. This will create the file `autoboot.bin` that will be copied to the SD card.
-
-
-	
