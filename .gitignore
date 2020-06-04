@@ -7,7 +7,6 @@
 /UCSDP/ucsdp
 
 /UCSDP/zmac
-/UCSDP/*.bin
 /UCSDP/*.obj
 /UCSDP/datetime.asm
 /UCSDP/readme.txt
