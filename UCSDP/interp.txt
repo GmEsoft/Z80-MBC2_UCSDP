@@ -1,0 +1,110 @@
+==========================================================================
+
+Set date:
+	F(ilter - D(ate -> DD-Mth-YY
+
+Change to INTERP disk (#9):
+	[F(iler] - P(refix -> #9
+	Q(uit
+
+
+Filer: G(et, S(ave, W(hat, N(ew, L(dir, R(em, C(hng, T(rans, D(ate,? [C.10]
+INTERP:
+
+Run Linker:
+	L(ink:
+
+Host file:
+INTERP.8.CODE     23 22-Aug- 8    55   512  Codefile => 8080 no floating point
+INTERP.8F.CODE    26 22-Aug- 8    78   512  Codefile => 8080 floating point
+INTERP.Z.CODE     22 22-Aug- 8   104   512  Codefile => Z-80 no floating point
+INTERP.ZF.CODE    25 22-Aug- 8   126   512  Codefile => Z-80 floating point
+
+Lib file:
+RSP.CODE           6 22-Aug- 8   155   512  Codefile => intf between interpreter and BIOS
+
+Lib file:
+BIOS.C.CODE        8 22-Aug- 8     6   512  Codefile => ok: queuing for console only
+BIOS.CODE          8 22-Aug- 8    14   512  Codefile => mixes up lower and upper case
+BIOS.CR.CODE       8 22-Aug- 8    22   512  Codefile => queuing for console and remote
+BIOS.CRP.CODE      9 22-Aug- 8    30   512  Codefile => queuing for console, remote and printer
+
+Lib file:
+INTER.CODE         4 22-Aug- 8    39   512  Codefile => works with SBIOS
+INTER.CPM1.CODE    4 22-Aug- 8    43   512  Codefile => works with CP/M CBIOS - 1 drive
+INTER.CPM2.CODE    4 22-Aug- 8    47   512  Codefile => works with CP/M CBIOS - 2 drives
+INTER.CPM4.CODE    4 22-Aug- 8    51   512  Codefile => works with CP/M CBIOS - 4 drives
+INTER.X.CODE       4 22-Aug- 8   151   512  Codefile => Extended SBIOS interface
+
+Lib file:
+TERTBOOT.CODE      7 22-Aug- 8   170   512  Codefile => tertiary bootstrap
+
+Lib file: (none)
+
+Map file: (none)
+
+Output file:
+NEW.INTERP        30 22-Aug- 8   187   512  Datafile
+
+After linking, X(ecute:
+COMPRESS.CODE     10 18-Aug- 8   177   512  Codefile
+
+     File to compress : system.interp
+
+     Output file (<ret> for same) :
+
+SYSTEM.LIBRARY     9 22-Aug- 8   161   512  Codefile
+< UNUSED >      2215             217
+18/18 files<listed/in-dir>, 217 blocks used, 2215 unused, 2215 in largest
+
+Install NEW.INTERP to SYSTEM.INTERP:
+	F(iler - T(rans - NEW.INTERP -> #4:SYSTEM.INTERP
+
+==========================================================================
+
+Linker IV.0 [x7]
+Host file? interp.zf
+Opening interp.zf.CODE
+Lib file? rsp
+Opening rsp.CODE
+Lib file? bios.c
+Opening bios.c.CODE
+Lib file? inter
+Opening inter.CODE
+Lib file? tertboot
+Opening tertboot.CODE
+Lib file?
+Map name?
+Reading INTERP
+Reading RSP
+Reading BIOS
+Reading INTSBIOS
+Reading TERTBOOT
+Output file? system.interp
+Linking INTERP   # 1
+   Copying proc INTERP
+   Copying proc RSP
+   Copying proc BIOS
+   Copying proc INTSBIOS
+   Copying proc TERTBOOT
+
+==========================================================================
+
+Assembly Code File Compressor IV.0 [g3]
+
+     Type "!" to escape
+
+     Do you wish to produce a relocatable object file? (Y/N)y
+
+     File to compress : system.interp
+
+     Output file (<ret> for same) :
+
+     Procedure #0: 0000H - 1F71H   8050 bytes
+     Procedure #1: 1F72H - 22C9H    856 bytes
+     Procedure #2: 22CAH - 27FBH   1330 bytes
+     Procedure #3: 27FCH - 286BH    112 bytes
+     Procedure #4: 286CH - 2C39H    974 bytes
+  Output file is 15010 bytes long
+
+==========================================================================

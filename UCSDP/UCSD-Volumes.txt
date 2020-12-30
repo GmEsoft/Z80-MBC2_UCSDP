@@ -1,0 +1,15 @@
+Vol	Origin	Image Name	VolName	Blocks	Ver		BIOS	Descr
+=============================================================================================================
+20	Z80PACK	ucsd-iv-sys1	SYS1	2432	IV.0 B3h	CBIOS	System, 4 volumes, stable
+21		ucsd-iv-sys2	SYS2	2432	IV			data disk, utilities
+22		ucsd-iv-interp	INTERP	494	IV			data disk, interp build disk
+23		ucsd-advx	ADVX	494				Colossal Cave Adv. Data disk
+24		ucsd-advsrc	ADVSRC	494				Colossal Cave Adv. Source disk
+
+29	Z80PACK	ucsd-startrek	STARTRK	494				Star Trek game with source
+30		ucsd-games	GAMES	494				Othello, Blackjack, Chase + source
+31		ucsd-kbdb	KBDB	494				Database source
+32		ucsd-kbdbx	KBDBX	494				Database code
+
+50	Z80PACK	ucsd-iv-sys1*	SYS1	2432	IV.0 B3h	SBIOS	System, 6 volumes, interp rebuilt for SBIOS
+51				PASCAL	2432	IV
