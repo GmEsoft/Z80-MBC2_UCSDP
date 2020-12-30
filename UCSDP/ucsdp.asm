@@ -1,5 +1,5 @@
 ;=============================================================================
-;	UCSD p-System Bootstrap Loader and C/SBIOS V1.31 for Z80-MBC2
+;	UCSD p-System Bootstrap Loader and C/SBIOS V1.32 for Z80-MBC2
 ;=============================================================================
 ;
 ;	Build:
@@ -11,10 +11,8 @@
 
 ;-----------------------------------------------------------------------------
 ; 	Settings
-DISK0	EQU	20		; First disk number in set
+DISK0	EQU	20		; First disk number in set (boot disk)
 DEBUG	EQU	0		; Debug mode
-EXTBIOS	EQU	1		;
-SBIOS	EQU	0		; System Bios vs. CP/M CBIOS
 
 ;-----------------------------------------------------------------------------
 ;	This auto-generated file defines $DATE and $TIME macros
@@ -190,8 +188,8 @@ READSEC$:
 ;
 ;
 HELLO$:	DB	ESC,'H',ESC,'J'
-	DB	'64K UCSD p-System IV.0 C/SBIOS V1.31 for Z80-MBC2, '
-	DB	'Copyright (C) 2019 by GmEsoft'
+	DB	'64K UCSD p-System IV.0 C/SBIOS V1.32 for Z80-MBC2, '
+	DB	'Copyright (C) 2019-2020 by GmEsoft'
 	DB	CR,LF
 	DB	'Build: '
 	$DATE			; Macro defining build date
@@ -275,7 +273,7 @@ LOOPDSK	PUSH	AF		; Save counter
 	INC	HL		;
 	LD	C,(HL)		; Get byte 2 in C
 	INC	HL		;
-	OR	(HL)		;
+	LD	B,(HL)		; Get byte 3 in B
 	INC	HL		;
 	OR	(HL)		;
 	INC	HL		;
@@ -283,12 +281,19 @@ LOOPDSK	PUSH	AF		; Save counter
 	INC	HL		;
 	JR	NZ,DSKNOK	; Go and skip image if the 5 bytes are not all 0
 
-	LD	A,C		; Check byte 2
+LDSK1	LD	A,C		; Check byte 2
 	CP	6		; Must be equal to 6
 	JR	Z,DSKOK		; Get vol name if yes
 
 	CP	10		; ... or 10
+	JR	Z,DSKOK
+
+	OR	A
 	JR	NZ,DSKNOK	; Skip if not
+
+	LD	C,B
+	LD	B,0FFH
+	JR	LDSK1
 
 ;	Disk image OK => get vol name
 DSKOK:	LD	C,(HL)		; Get name length in C
@@ -568,8 +573,7 @@ SBIOS_BEG:
 	JP	DSKINIT		; reset disk
 	JP	DSKSTRT		; activate disk
 	JP	DSKSTOP		; de-act disk
-
-	IF	EXTBIOS
+;--- Ext-SBIOS
 	JP	PRNINIT		;
 	JP	PRNSTAT		;
 	JP	PRNREAD		;
@@ -583,11 +587,6 @@ SBIOS_BEG:
 	JP	USRREAD		;
 	JP	USRWRIT		;
 	JP	CLKREAD		; system clock read
-	ELSE
-	REPT	13
-	DB	76H,00H,0C9H	; HALT,NOP,RET
-	ENDM
-	ENDIF
 SBIOS_END:
 
 ;-----------------------------------------------------------------------------
@@ -699,13 +698,39 @@ CONREAD	CALL	CONIN
 	JR	Z,CONREAD
 	JR	RETATOC
 
-CONIN:	IN	A,(1)		; get character from console
-	INC	A		; Is there a char ?
+;-----------------------------------------------------------------------------
+;
+;	read character into register a from reader device
+;
+READER: 			; re-route to console input
+
+CONIN:	LD	A,$-$		; Get last key
+LASTKEY	EQU	$-1		;
+	CP	27		; last key is ESC ?
+	JR	NZ,CONIN1	;
+	IN	A,(1)		;
+	CP	'['		; is it ANSI Esc ?
+	JR	NZ,CONIN2	; if yes, swallow '['
+CONIN1:	IN	A,(1)		; get character from console
+CONIN2:	INC	A		; Is there a char ?
 	RET	Z		; done if yes, returning A=0
 
 	DEC	A		; recover char
+	LD	(LASTKEY),A	; Save as last key
 	RET			; Done
 
+
+;-----------------------------------------------------------------------------
+;
+;	list character from register c
+;
+LIST:				; re-route to console output
+
+;-----------------------------------------------------------------------------
+;
+;	punch character from register c
+;
+PUNCH:				; re-route to console output
 
 ;-----------------------------------------------------------------------------
 ;
@@ -730,39 +755,10 @@ CONOUT:
 
 ;-----------------------------------------------------------------------------
 ;
-;	list character from register c
-;
-LIST:	JR	CONOUT		; re-route to console output
-
-;-----------------------------------------------------------------------------
-;
 ;	return list status (00h if not ready, 0ffh if ready)
 ;
 LISTST: LD	A,0FFH		; List device always ready :)
 	RET			; done
-
-;-----------------------------------------------------------------------------
-;
-;	punch character from register c
-;
-PUNCH:	JR	CONOUT		; re-route to console output
-
-;-----------------------------------------------------------------------------
-;
-;	read character into register a from reader device
-;
-READER: JP	CONIN		; re-route to console input
-
-;-----------------------------------------------------------------------------
-;
-;
-;	i/o drivers for the disk follow
-;
-;	move to the track 00 position of current drive
-;	translate this call into a settrk call with parameter 00
-;
-HOME:	LD	C,0		; select track 0
-	JP	SETTRK		; we will move to 00 on first read/write
 
 ;-----------------------------------------------------------------------------
 ;
@@ -775,9 +771,21 @@ SELDSK: LD	A,B		; save B
 	LD	B,A		; restore B
 	LD	A,(HL)		; get physical disk # from table
 	LD	(NEWDSK),A	; to be used later when actual I/O ops are performed
-	LD	HL,0000H	; return code
 	XOR	A		; return A=0 for OK
+	LD	H,A		; return code: HL = 0
+	LD	L,A		;
 	RET			; done
+
+;-----------------------------------------------------------------------------
+;
+;
+;	i/o drivers for the disk follow
+;
+;	move to the track 00 position of current drive
+;	translate this call into a settrk call with parameter 00
+;
+HOME:	LD	C,0		; select track 0
+	;continue to SETTRK
 
 ;-----------------------------------------------------------------------------
 ;
@@ -1064,8 +1072,7 @@ LMUL60:	CALL	LLDBCHL
 	CALL	LADHLHL		; *12
 	CALL	LADHLBC		; *15
 	CALL	LADHLHL		; *30
-	CALL	LADHLHL		; *60
-	RET
+	JP	LADHLHL		; *60
 
 ;	Long Move HL':HL to BC':BC
 LLDBCHL	LD	B,H		;
