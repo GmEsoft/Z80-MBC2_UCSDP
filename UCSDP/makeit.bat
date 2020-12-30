@@ -1,7 +1,7 @@
 @echo off
 set name=ucsdp
 if exist datetime.exe (
-	datetime>datetime.asm
+	datetime $>datetime.asm
 ) else (
 	echo $DATE	MACRO>datetime.asm
 	echo 	DB	"%DATE%">>datetime.asm

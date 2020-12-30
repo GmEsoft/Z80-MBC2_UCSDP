@@ -9,16 +9,19 @@ int main( int argc, char *argv[] )
 {
 	struct tm *ltm;
 	time_t ltime;
+	char *prefix;
+
+	prefix = argc > 1 ? argv[1] : "";
 	time( &ltime );
 	ltm = localtime( &ltime );
 	printf(
-		"$DATE	MACRO\r\n"
+		"%sDATE	MACRO\r\n"
 		"\tDB	\"%s %02d %04d\"\r\n"
 		"\tENDM\r\n"
-		"$TIME	MACRO\r\n"
+		"%sTIME	MACRO\r\n"
 		"\tDB	\"%02d:%02d:%02d\"\r\n"
 		"\tENDM\r\n",
-		months[ltm->tm_mon], ltm->tm_mday, ltm->tm_year+1900,
-		ltm->tm_hour, ltm->tm_min, ltm->tm_sec );
+		prefix, months[ltm->tm_mon], ltm->tm_mday, ltm->tm_year+1900,
+		prefix, ltm->tm_hour, ltm->tm_min, ltm->tm_sec );
 	return 0;
 }

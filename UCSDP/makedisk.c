@@ -7,7 +7,7 @@
 #include <fcntl.h>    // O_RDWR...
 #include <sys/stat.h> // S_IWRITE
 
-#define MAKEDISK "UCSD p-System Disk Image Convertor V1.1 for Z80-MBC2, (C) 2019 by GmEsoft"
+#define MAKEDISK "UCSD p-System Disk Image Converter V1.2 for Z80-MBC2, (C) 2019-20 by GmEsoft"
 
 typedef unsigned int uint32_t;
 
@@ -62,10 +62,10 @@ void copy( int out, int in, uint32_t from, uint32_t to, uint32_t dest, int lrl, 
 
 	printf( "Sect Map:\nFrom: " );
 	for ( i=0; i<spt; ++i )
-		printf( "%3d", i );
+		printf( "%3d", map[i] );
 	printf( "\n  To: " );
 	for ( i=0; i<spt; ++i )
-		printf( "%3d", rmap[i] );
+		printf( "%3d", i );
 	printf( "\n" );
 
 	lseek( out, dest*lrl, SEEK_SET );
@@ -73,12 +73,12 @@ void copy( int out, int in, uint32_t from, uint32_t to, uint32_t dest, int lrl, 
 	t = 0;
 	for ( ; from<to; from+=spt )
 	{
-		for ( i=0; i<spt; ++i )
+		for ( i=0; i<spt && i<to-from; ++i )
 		{
 			j = rmap[i] + t;
 			while ( j>=spt )
 				j -= spt;
-			//printf( "%3d", j );
+			//printf( "%3d ", j );
 			lseek( in, ( from + j ) * lrl, SEEK_SET );
 			read( in, buf, lrl );
 			write( out, buf, lrl );
