@@ -540,8 +540,6 @@ SLBIOS$	DB	CR,'Select BIOS Type (<S>BIOS, <C>BIOS, <ret> to accept):',0
 
 BIOS$	DB	'BIOS?',0
 
-LAYOUT$	DB	CR,'Select keyboard layout (<ret> to accept):',0
-
 NOSECB$	DB	CR,LF,'Secondary bootstrap not present !'
 HALTED$	DB	CR,LF,LF,'** SYSTEM HALTED **',0
 
