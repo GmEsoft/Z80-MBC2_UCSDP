@@ -105,7 +105,7 @@ How to create the set of disks ?
 
 1: Download  the  original  disk  image  from the web. I chose to download them from the Z80-SIM page at `ClassicCmp.org`,
 at this URL:
-	http://www.classiccmp.org/cpmarchives/cpm/mirrors/www.unix4fun.org/z80pack/ftp/ucsd-iv.tgz
+	https://www.icl1900.co.uk/unix4fun/z80pack/ftp/ucsd-iv.tgz
 
 2: Extract the 2 disk images from the archive: `ucsd-iv-1.dsk` and `ucsd-iv-2.dsk`.
 
