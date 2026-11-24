@@ -473,9 +473,9 @@ CFGSAVE	LD	HL,DSKTBL	; Copy disk mapping table
 	POP	BC		;
 	CALL	SETDMA		; Set buffer address
 	CALL	WRITE		; Write sector
-	CALL	SETBIOS		; Install SBIOS if selected
+	JP	SETBIOS		; Install SBIOS if selected
 
-	RET			; Done, proceed loading secondary bootstrap.
+				; Done, proceed loading secondary bootstrap.
 
 ;-----------------------------------------------------------------------------
 ;	SETUP BIOS
@@ -1064,8 +1064,7 @@ LMUL60:	CALL	LLDBCHL
 	CALL	LADHLHL		; *12
 	CALL	LADHLBC		; *15
 	CALL	LADHLHL		; *30
-	CALL	LADHLHL		; *60
-	RET
+	JP	LADHLHL		; *60
 
 ;	Long Move HL':HL to BC':BC
 LLDBCHL	LD	B,H		;
